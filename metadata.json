@@ -1,0 +1,6 @@
+{
+  "name": "FlipScout",
+  "description": "Local marketplace scout and profit calculator to find free and cash items to buy for resale.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

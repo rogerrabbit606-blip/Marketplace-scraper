@@ -1,0 +1,139 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidScout(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 80 &&
+             data.keywords is string && data.keywords.size() <= 100 &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 40 &&
+             data.dealMode in ['FREE_ONLY', 'CASH_BARGAIN'] &&
+             data.maxPrice is int && data.maxPrice >= 0 && data.maxPrice <= 100000 &&
+             (data.dealMode != 'FREE_ONLY' || data.maxPrice == 0) &&
+             data.citySlug is string && data.citySlug.size() >= 1 && data.citySlug.size() <= 40 &&
+             data.cityName is string && data.cityName.size() >= 1 && data.cityName.size() <= 60 &&
+             data.radiusMiles is int && data.radiusMiles >= 1 && data.radiusMiles <= 500 &&
+             data.targetResale is int && data.targetResale >= 0 && data.targetResale <= 1000000;
+    }
+
+    function isValidFlipItem(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+             data.sourcePlatform is string && data.sourcePlatform.size() >= 1 && data.sourcePlatform.size() <= 40 &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 40 &&
+             data.acquisitionType in ['FREE', 'CASH'] &&
+             data.buyPriceCents is int && data.buyPriceCents >= 0 && data.buyPriceCents <= 100000000 &&
+             (data.acquisitionType != 'FREE' || data.buyPriceCents == 0) &&
+             data.repairCostCents is int && data.repairCostCents >= 0 && data.repairCostCents <= 100000000 &&
+             data.estResaleCents is int && data.estResaleCents >= 0 && data.estResaleCents <= 100000000 &&
+             data.soldPriceCents is int && data.soldPriceCents >= 0 && data.soldPriceCents <= 100000000 &&
+             data.status in ['SCOUTING', 'BOUGHT', 'LISTED', 'SOLD'] &&
+             data.listingUrl is string && data.listingUrl.size() <= 500 &&
+             data.notes is string && data.notes.size() <= 500;
+    }
+
+    match /users/{userId}/scouts/{scoutId} {
+      allow get: if isOwner(userId) && isValidId(scoutId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(scoutId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'title', 'keywords', 'category', 'dealMode',
+                         'maxPrice', 'citySlug', 'cityName', 'radiusMiles',
+                         'targetResale', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'title', 'keywords', 'category', 'dealMode',
+                         'maxPrice', 'citySlug', 'cityName', 'radiusMiles',
+                         'targetResale', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidScout(incoming(), userId) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time;
+
+      allow update: if isOwner(userId) &&
+                       isValidId(scoutId) &&
+                       isValidScout(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'title', 'keywords', 'category', 'dealMode',
+                         'maxPrice', 'citySlug', 'cityName', 'radiusMiles',
+                         'targetResale', 'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(scoutId);
+    }
+
+    match /users/{userId}/flips/{flipId} {
+      allow get: if isOwner(userId) && isValidId(flipId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(flipId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'title', 'sourcePlatform', 'category',
+                         'acquisitionType', 'buyPriceCents', 'repairCostCents',
+                         'estResaleCents', 'soldPriceCents', 'status',
+                         'listingUrl', 'notes', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'title', 'sourcePlatform', 'category',
+                         'acquisitionType', 'buyPriceCents', 'repairCostCents',
+                         'estResaleCents', 'soldPriceCents', 'status',
+                         'listingUrl', 'notes', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidFlipItem(incoming(), userId) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time;
+
+      allow update: if isOwner(userId) &&
+                       isValidId(flipId) &&
+                       isValidFlipItem(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       existing().status != 'SOLD' &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'title', 'sourcePlatform', 'category',
+                         'acquisitionType', 'buyPriceCents', 'repairCostCents',
+                         'estResaleCents', 'soldPriceCents', 'status',
+                         'listingUrl', 'notes', 'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(flipId);
+    }
+  }
+}

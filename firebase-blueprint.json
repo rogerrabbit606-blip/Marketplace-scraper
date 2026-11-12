@@ -1,0 +1,169 @@
+{
+  "entities": {
+    "SavedScout": {
+      "title": "SavedScout",
+      "description": "A saved marketplace search profile targeting free or cash resale deals.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "title": {
+          "type": "string",
+          "description": "User-friendly label for this search scout."
+        },
+        "keywords": {
+          "type": "string",
+          "description": "Search query keywords."
+        },
+        "category": {
+          "type": "string",
+          "description": "Resale category filter."
+        },
+        "dealMode": {
+          "type": "string",
+          "enum": ["FREE_ONLY", "CASH_BARGAIN"],
+          "description": "Whether to scout free ($0) items or cash bargains."
+        },
+        "maxPrice": {
+          "type": "integer",
+          "description": "Maximum cash price in USD (0 for free-only)."
+        },
+        "citySlug": {
+          "type": "string",
+          "description": "Craigslist subdomain / local market slug."
+        },
+        "cityName": {
+          "type": "string",
+          "description": "Human-readable local market name."
+        },
+        "radiusMiles": {
+          "type": "integer",
+          "description": "Pickup search radius in miles."
+        },
+        "targetResale": {
+          "type": "integer",
+          "description": "Target resale value in USD."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "keywords",
+        "category",
+        "dealMode",
+        "maxPrice",
+        "citySlug",
+        "cityName",
+        "radiusMiles",
+        "targetResale",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "FlipItem": {
+      "title": "FlipItem",
+      "description": "A marketplace item being tracked through scouting, cash/free purchase, listing, and resale.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "title": {
+          "type": "string",
+          "description": "Item title."
+        },
+        "sourcePlatform": {
+          "type": "string",
+          "description": "Marketplace source (Facebook Marketplace, Craigslist, OfferUp, etc.)."
+        },
+        "category": {
+          "type": "string",
+          "description": "Item category."
+        },
+        "acquisitionType": {
+          "type": "string",
+          "enum": ["FREE", "CASH"],
+          "description": "Free pickup or cash purchase."
+        },
+        "buyPriceCents": {
+          "type": "integer",
+          "description": "Purchase price in cents (0 for FREE)."
+        },
+        "repairCostCents": {
+          "type": "integer",
+          "description": "Gas, cleaning, or repair cost in cents."
+        },
+        "estResaleCents": {
+          "type": "integer",
+          "description": "Estimated resale price in cents."
+        },
+        "soldPriceCents": {
+          "type": "integer",
+          "description": "Actual sold price in cents."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["SCOUTING", "BOUGHT", "LISTED", "SOLD"],
+          "description": "Flip pipeline stage."
+        },
+        "listingUrl": {
+          "type": "string",
+          "description": "Optional URL to the marketplace listing."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Inspection notes, pickup details, or buyer notes."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "sourcePlatform",
+        "category",
+        "acquisitionType",
+        "buyPriceCents",
+        "repairCostCents",
+        "estResaleCents",
+        "soldPriceCents",
+        "status",
+        "listingUrl",
+        "notes",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/scouts/{scoutId}": {
+      "schema": { "$ref": "#/entities/SavedScout" },
+      "description": "User-owned saved marketplace search scouts."
+    },
+    "/users/{userId}/flips/{flipId}": {
+      "schema": { "$ref": "#/entities/FlipItem" },
+      "description": "User-owned marketplace flip inventory and profit tracker."
+    }
+  }
+}
